@@ -1,0 +1,16 @@
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.40.0
+accelerate>=0.28.0
+opencv-python>=4.9.0
+numpy>=1.25.0
+pillow>=10.0.0
+flask>=2.3.0
+
+# OCR (Watermark detection only)
+pytesseract>=0.3.10
+
+#python -c "import torch; print(torch.cuda.is_available())"
+#python check_installation.py
+#python -c "from image_detector import detect_ai_image; print('Detector OK')"
+#pip install opencv-python pillow numpy transformers scikit-image
