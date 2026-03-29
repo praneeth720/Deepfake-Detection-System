@@ -19,14 +19,60 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 ## 🧠 Technologies Used
 
+## 🧠 Technologies Used
+
 - Python
 - Flask
-- OpenCV
 - PyTorch
 - Transformers (CLIP, ViT)
-- Librosa (Audio Processing)
+- OpenCV
+- Librosa
+- NumPy
 - Scikit-learn
 - SQLite
+- HTML, CSS
+- FFmpeg
+- Pyngrok
+
+
+🔹 Programming Language
+Python 3.x
+
+🔹 Backend Framework
+Flask (Web Application Framework)
+
+🔹 Machine Learning / Deep Learning
+PyTorch (Model execution)
+Transformers (CLIP, ViT models)
+Scikit-learn (Random Forest for audio classification)
+
+👉 Deepfake systems commonly use CNNs and deep learning models for detection tasks
+
+🔹 Computer Vision
+OpenCV (Image & Video Processing)
+Pillow (Image handling)
+scikit-image (Feature extraction)
+
+🔹 Audio Processing
+Librosa (Audio feature extraction)
+NumPy (Numerical computation)
+
+🔹 Natural Language / Vision Models
+CLIP Model (Image understanding)
+Vision Transformer (ViT)
+
+🔹 Database
+SQLite (Lightweight database for logging)
+
+🔹 Web & UI
+HTML5
+CSS3 (Glassmorphism UI)
+
+🔹 Other Tools
+FFmpeg (Audio conversion)
+Pyngrok (Public URL tunneling)
+Werkzeug (File handling)
+
 
 ---
 
