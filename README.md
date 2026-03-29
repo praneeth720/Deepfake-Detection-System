@@ -39,9 +39,11 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 -Python 3.x
 
+
 🔹 Backend Framework
 
 -Flask (Web Application Framework)
+
 
 🔹 Machine Learning / Deep Learning
 
@@ -53,6 +55,7 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 👉 Deepfake systems commonly use CNNs and deep learning models for detection tasks
 
+
 🔹 Computer Vision
 
 -OpenCV (Image & Video Processing)
@@ -61,11 +64,13 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 -scikit-image (Feature extraction)
 
+
 🔹 Audio Processing
 
 -Librosa (Audio feature extraction)
 
 -NumPy (Numerical computation)
+
 
 🔹 Natural Language / Vision Models
 
@@ -73,15 +78,18 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 -Vision Transformer (ViT)
 
+
 🔹 Database
 
 -SQLite (Lightweight database for logging)
+
 
 🔹 Web & UI
 
 -HTML5
 
 -CSS3 (Glassmorphism UI)
+
 
 🔹 Other Tools
 
