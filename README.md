@@ -31,7 +31,7 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 ---
 
 ## 🏗️ Project Structure
-
+```
 Deepfake_Detection_System/
 │
 ├── app.py
@@ -60,7 +60,7 @@ Deepfake_Detection_System/
 ├── uploads/
 │
 └── .gitignore
-
+```
 
 ---
 
