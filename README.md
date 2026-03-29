@@ -36,42 +36,42 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 
 🔹 Programming Language
-Python 3.x
+-Python 3.x
 
 🔹 Backend Framework
-Flask (Web Application Framework)
+-Flask (Web Application Framework)
 
 🔹 Machine Learning / Deep Learning
-PyTorch (Model execution)
-Transformers (CLIP, ViT models)
-Scikit-learn (Random Forest for audio classification)
+-PyTorch (Model execution)
+-Transformers (CLIP, ViT models)
+-Scikit-learn (Random Forest for audio classification)
 
 👉 Deepfake systems commonly use CNNs and deep learning models for detection tasks
 
 🔹 Computer Vision
-OpenCV (Image & Video Processing)
-Pillow (Image handling)
-scikit-image (Feature extraction)
+-OpenCV (Image & Video Processing)
+-Pillow (Image handling)
+-scikit-image (Feature extraction)
 
 🔹 Audio Processing
-Librosa (Audio feature extraction)
-NumPy (Numerical computation)
+-Librosa (Audio feature extraction)
+-NumPy (Numerical computation)
 
 🔹 Natural Language / Vision Models
-CLIP Model (Image understanding)
-Vision Transformer (ViT)
+-CLIP Model (Image understanding)
+-Vision Transformer (ViT)
 
 🔹 Database
-SQLite (Lightweight database for logging)
+-SQLite (Lightweight database for logging)
 
 🔹 Web & UI
-HTML5
-CSS3 (Glassmorphism UI)
+-HTML5
+-CSS3 (Glassmorphism UI)
 
 🔹 Other Tools
-FFmpeg (Audio conversion)
-Pyngrok (Public URL tunneling)
-Werkzeug (File handling)
+-FFmpeg (Audio conversion)
+-Pyngrok (Public URL tunneling)
+-Werkzeug (File handling)
 
 
 ---
