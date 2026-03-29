@@ -39,25 +39,27 @@ Deepfake_Detection_System/
 ├── audio_service.py
 ├── image_detector.py
 ├── video_detector.py
+├── requirements.txt
+├── README.md
 │
 ├── ai_detector/
-│ └── audio/
-│ ├── audio_detector.py
-│ ├── processor.py
-│ ├── models/
+│   └── audio/
+│       ├── audio_detector.py
+│       ├── processor.py
+│       ├── models/
 │
 ├── templates/
-│ ├── login.html
-│ ├── register.html
-│ ├── dashboard.html
-│ ├── results.html
+│   ├── login.html
+│   ├── register.html
+│   ├── dashboard.html
+│   ├── results.html
 │
 ├── static/
-│ └── style.css
+│   └── style.css
 │
 ├── uploads/
-├── requirements.txt
-└── README.md
+│
+└── .gitignore
 
 
 ---
