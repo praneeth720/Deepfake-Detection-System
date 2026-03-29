@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Deepfake Detection Dashboard</title>
+    <title>Detection Result</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="dashboard-bg">
@@ -9,26 +9,11 @@
 <div class="dashboard-container">
 
     <div class="top-bar">
-        <h2>Deepfake Detection Dashboard</h2>
-        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        <h2>Deepfake Detection Result</h2>
+        <a href="{{ url_for('dashboard') }}" class="logout-btn">⬅ Back</a>
     </div>
 
-    <div class="glass-card upload-card">
-        <form method="POST" action="/detect" enctype="multipart/form-data">
-            <p>Upload Image:</p>
-            <input type="file" name="image">
-            <p>Upload Video:</p>
-            <input type="file" name="video">
-            <p>Upload Audio:</p>
-            <input type="file" name="audio" accept=".wav,.mp3">
-            <p style="color: #aaa;">Upload only one file at a time</p>
-            <button type="submit">Detect</button>
-        </form>
-    </div>
-
-    {% if result %}
     <div class="glass-card result-card">
-        <h3>Detection Result</h3>
         <div class="result-media">
             {% if result.type == "Image" %}
                 <img src="{{ result.file_path }}">
@@ -42,25 +27,29 @@
                 </audio>
             {% endif %}
         </div>
-        <h4>Type: {{ result.type }}</h4>
-        <h4>Confidence: {{ result.confidence }}%</h4>
+
+        <div class="result-title">
+            File Type: {{ result.type }}
+        </div>
+
         <div class="verdict {% if 'Real' in result.verdict %}real{% else %}fake{% endif %}">
             {{ result.verdict }}
         </div>
-        <pre>{{ result.details }}</pre>
     </div>
-    {% endif %}
 
 </div>
 
 <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner"></div>
-    <div class="loading-text">Detecting...</div>
+    <div class="loading-text">Processing...</div>
 </div>
 
 <script>
 const overlay = document.getElementById('loadingOverlay');
-document.querySelector('form').addEventListener('submit', () => overlay.classList.add('active'));
+const form = document.querySelector('form');
+if(form){
+    form.addEventListener('submit', () => overlay.classList.add('active'));
+}
 </script>
 
 </body>

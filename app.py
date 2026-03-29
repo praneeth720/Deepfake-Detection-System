@@ -1,177 +1,205 @@
-import os
-from flask import (
-    Flask, render_template, request,
-    redirect, url_for, session, send_from_directory
-)
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 from werkzeug.utils import secure_filename
 from pyngrok import ngrok
+import os
+import subprocess
 
-# ---------- INTERNAL MODULES ----------
-from database import register_user, login_user, init_db, save_log
+from database import init_db, save_log, register_user, login_user
 from image_detector import detect_ai_image
 from video_detector import detect_video
+from audio_service import analyze_audio
 
-# ---------- FLASK CONFIG ----------
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+app.secret_key = "secretkey"
 
-# ---------- BASE DIRECTORY ----------
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+# ================= FOLDERS =================
+UPLOAD_FOLDER = "uploads"
+IMAGE_FOLDER = os.path.join(UPLOAD_FOLDER, "images")
+VIDEO_FOLDER = os.path.join(UPLOAD_FOLDER, "videos")
+AUDIO_FOLDER = os.path.join(UPLOAD_FOLDER, "audios")
 
-# ---------- UPLOAD FOLDERS ----------
-IMAGE_UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads", "images")
-VIDEO_UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads", "videos")
+app.config["IMAGE_UPLOAD_FOLDER"] = IMAGE_FOLDER
+app.config["VIDEO_UPLOAD_FOLDER"] = VIDEO_FOLDER
+app.config["AUDIO_UPLOAD_FOLDER"] = AUDIO_FOLDER
 
-os.makedirs(IMAGE_UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(VIDEO_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(IMAGE_FOLDER, exist_ok=True)
+os.makedirs(VIDEO_FOLDER, exist_ok=True)
+os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
-app.config["IMAGE_UPLOAD_FOLDER"] = IMAGE_UPLOAD_FOLDER
-app.config["VIDEO_UPLOAD_FOLDER"] = VIDEO_UPLOAD_FOLDER
-
-# ---------- INIT DATABASE ----------
+# Init DB
 init_db()
 
-# =========================================================
-# ======================= ROUTES ==========================
-# =========================================================
+# ================= AUDIO CONVERSION =================
+def convert_to_wav(input_path):
+    output_path = input_path.rsplit(".", 1)[0] + ".wav"
 
-# ---------- LOGIN ----------
-@app.route("/", methods=["GET", "POST"])
+    ffmpeg_path = r"C:\ffmpeg\bin\ffmpeg.exe"
+
+    command = [
+        ffmpeg_path,
+        "-y",
+        "-i", input_path,
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-ar", "16000",
+        "-ac", "1",
+        output_path
+    ]
+
+    subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return output_path
+
+
+# ================= ROUTES =================
+
+@app.route("/")
+def home():
+    return render_template("login.html")
+
+
+# -------- LOGIN --------
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form["username"]
+        password = request.form["password"]
 
         role = login_user(username, password)
+
         if role:
             session["user"] = username
             return redirect(url_for("dashboard"))
         else:
-            return render_template("login.html", error="Invalid credentials")
+            return render_template("login.html", error="❌ Invalid username or password")
 
     return render_template("login.html")
 
 
-# ---------- REGISTER ----------
+# -------- REGISTER --------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form["username"]
+        password = request.form["password"]
 
         success = register_user(username, password)
+
         if success:
-            return redirect(url_for("login"))
+            return render_template("register.html", message="✅ Account created successfully!")
         else:
-            return render_template(
-                "register.html",
-                message="Username already exists"
-            )
+            return render_template("register.html", error="❌ Username already exists!")
 
     return render_template("register.html")
 
 
-# ---------- DASHBOARD ----------
-@app.route("/dashboard", methods=["GET", "POST"])
+# -------- DASHBOARD --------
+@app.route("/dashboard")
 def dashboard():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template("dashboard.html", user=session["user"])
+
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect(url_for("login"))
+
+
+# ================= DETECTION =================
+
+@app.route("/detect", methods=["POST"])
+def detect():
     if "user" not in session:
         return redirect(url_for("login"))
 
     result = None
 
-    if request.method == "POST":
+    # IMAGE
+    if "image" in request.files and request.files["image"].filename:
+        file = request.files["image"]
+        filename = secure_filename(file.filename)
+        path = os.path.join(app.config["IMAGE_UPLOAD_FOLDER"], filename)
+        file.save(path)
 
-        # ================= IMAGE UPLOAD =================
-        if "image" in request.files and request.files["image"].filename:
-            file = request.files["image"]
-            filename = secure_filename(file.filename)
-            image_path = os.path.join(
-                app.config["IMAGE_UPLOAD_FOLDER"], filename
-            )
-            file.save(image_path)
+        output = detect_ai_image(path)
 
-            # ---- IMAGE DETECTION ----
-            output = detect_ai_image(image_path)
+        save_log(session["user"], "Image", output["confidence"], output["verdict"])
 
-            confidence = output["confidence"]
-            verdict = output["verdict"]
-            details = output["details"]
+        result = {
+            "type": "Image",
+            "confidence": output["confidence"],
+            "verdict": output["verdict"],
+            "file_path": url_for("uploaded_image", filename=filename)
+        }
 
-            save_log(session["user"], "Image", confidence, verdict)
+    # VIDEO
+    elif "video" in request.files and request.files["video"].filename:
+        file = request.files["video"]
+        filename = secure_filename(file.filename)
+        path = os.path.join(app.config["VIDEO_UPLOAD_FOLDER"], filename)
+        file.save(path)
 
-            result = {
-                "type": "Image",
-                "confidence": confidence,
-                "verdict": verdict,
-                "details": details,
-                "file_path": url_for(
-                    "uploaded_image", filename=filename
-                )
-            }
+        confidence, verdict, _ = detect_video(path)
 
-        # ================= VIDEO UPLOAD =================
-        elif "video" in request.files and request.files["video"].filename:
-            file = request.files["video"]
-            filename = secure_filename(file.filename)
-            video_path = os.path.join(
-                app.config["VIDEO_UPLOAD_FOLDER"], filename
-            )
-            file.save(video_path)
+        save_log(session["user"], "Video", confidence, verdict)
 
-            # ---- VIDEO DETECTION ----
-            confidence, verdict, details = detect_video(video_path)
+        result = {
+            "type": "Video",
+            "confidence": confidence,
+            "verdict": verdict,
+            "file_path": url_for("uploaded_video", filename=filename)
+        }
 
-            save_log(session["user"], "Video", confidence, verdict)
+    # AUDIO
+    elif "audio" in request.files and request.files["audio"].filename:
+        file = request.files["audio"]
+        filename = secure_filename(file.filename)
+        path = os.path.join(app.config["AUDIO_UPLOAD_FOLDER"], filename)
+        file.save(path)
 
-            result = {
-                "type": "Video",
-                "confidence": round(float(confidence), 2),
-                "verdict": verdict,
-                "details": details,
-                "file_path": url_for(
-                    "uploaded_video", filename=filename
-                )
-            }
+        wav_path = convert_to_wav(path)
+        output = analyze_audio(wav_path)
 
-    return render_template("dashboard.html", result=result)
+        confidence = output["confidence"]
+        verdict = output["verdict"]
+
+        save_log(session["user"], "Audio", confidence, verdict)
+
+        result = {
+            "type": "Audio",
+            "confidence": confidence,
+            "verdict": verdict,
+            "file_path": url_for("uploaded_audio", filename=filename)
+        }
+
+    return render_template("results.html", result=result)
 
 
-# ---------- SERVE UPLOADED IMAGE ----------
+# ================= FILE SERVING =================
+
 @app.route("/uploads/images/<filename>")
 def uploaded_image(filename):
-    return send_from_directory(
-        app.config["IMAGE_UPLOAD_FOLDER"], filename
-    )
+    return send_from_directory(app.config["IMAGE_UPLOAD_FOLDER"], filename)
 
 
-# ---------- SERVE UPLOADED VIDEO ----------
 @app.route("/uploads/videos/<filename>")
 def uploaded_video(filename):
-    return send_from_directory(
-        app.config["VIDEO_UPLOAD_FOLDER"], filename
-    )
+    return send_from_directory(app.config["VIDEO_UPLOAD_FOLDER"], filename)
 
 
-# ---------- LOGOUT ----------
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+@app.route("/uploads/audios/<filename>")
+def uploaded_audio(filename):
+    return send_from_directory(app.config["AUDIO_UPLOAD_FOLDER"], filename)
 
 
-# =========================================================
-# ======================= RUN APP =========================
-# =========================================================
+# ================= RUN =================
+
 if __name__ == "__main__":
-    from pyngrok import ngrok
+    port = 5000
 
-    ngrok.kill()   # 🔥 kill any old tunnels safely
-    public_url = ngrok.connect(5000)
-    print("🌍 Public URL:", public_url)
+    ngrok.kill()
+    public_url = ngrok.connect(port)
+    print(f"🚀 Public URL: {public_url}")
 
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=False,
-        use_reloader=False
-    )
+    app.run(port=port, debug=True, use_reloader=False)

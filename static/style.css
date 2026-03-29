@@ -1,65 +1,91 @@
+/* ================= GLOBAL ================= */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0d1117; /* dark background */
+    color: #f0f0f0;
 }
 
-/* Login Background */
-.bg-image {
-    background: url('https://images.unsplash.com/photo-1492724441997-5dc865305da7');
-    background-size: cover;
-    background-position: center;
-    height: 100vh;
-}
-
-/* Register Background */
-.bg-light {
-    background: #c8d6e5;
-    height: 100vh;
-}
-
-/* Login & Register Boxes */
-.login-box, .register-box {
-    width: 350px;
-    background: white;
-    padding: 40px;
-    margin: 100px auto;
-    border-radius: 10px;
+/* ================= GLASSMORPHIC CARDS ================= */
+.glass-card {
+    background: rgba(30, 30, 30, 0.75);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 30px;
+    margin: 40px auto;
+    max-width: 500px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
     text-align: center;
-    box-shadow: 0px 5px 20px rgba(0,0,0,0.2);
+    color: #f0f0f0;
 }
 
+/* ================= HEADINGS ================= */
+h2 {
+    color: #00d0ff;
+    margin-bottom: 25px;
+}
+
+h3 {
+    color: #00d0ff;
+    margin-bottom: 15px;
+}
+
+h4 {
+    margin: 8px 0;
+}
+
+/* ================= INPUTS & BUTTONS ================= */
 input {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+    width: 90%;
+    padding: 12px;
+    margin: 12px 0;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #1c1c1c;
+    color: #f0f0f0;
+}
+
+input::placeholder {
+    color: #888;
 }
 
 button {
-    width: 100%;
-    padding: 10px;
-    background: #0984e3;
-    color: white;
+    width: 95%;
+    padding: 12px;
+    margin-top: 15px;
     border: none;
-    border-radius: 5px;
+    border-radius: 10px;
+    background: #00d0ff;
+    color: #0d1117;
+    font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 button:hover {
-    background: #0652dd;
+    background: #00a5cc;
+}
+
+/* ================= LINKS ================= */
+a {
+    color: #00d0ff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
 }
 
 /* ================= DASHBOARD ================= */
-
 .dashboard-bg {
-    background: linear-gradient(to right, #1e3c72, #2a5298);
+    background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
     min-height: 100vh;
-    padding: 40px;
+    padding: 40px 20px;
 }
 
 .dashboard-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: auto;
 }
 
@@ -67,28 +93,136 @@ button:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: white;
+    color: #f0f0f0;
+    margin-bottom: 20px;
 }
 
 .logout-btn {
-    color: white;
+    color: #f0f0f0;
     text-decoration: none;
-    background: red;
-    padding: 8px 15px;
-    border-radius: 5px;
-}
-
-.upload-card, .result-card {
-    background: white;
-    padding: 30px;
-    margin-top: 20px;
+    background: #e74c3c;
+    padding: 10px 20px;
     border-radius: 10px;
-    box-shadow: 0px 5px 20px rgba(0,0,0,0.2);
+    font-weight: bold;
+    transition: 0.3s;
 }
 
+.logout-btn:hover {
+    background: #c0392b;
+}
+
+/* ================= MEDIA PREVIEW ================= */
+.result-media {
+    overflow-y: auto;
+    max-height: 60vh;
+    margin-bottom: 15px;
+}
+
+.result-media img,
+.result-media video {
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+/* ================= PRE & DETAILS ================= */
 pre {
-    background: #f4f4f4;
+    background: rgba(20, 20, 20, 0.8);
     padding: 15px;
-    border-radius: 5px;
+    border-radius: 10px;
+    color: #f0f0f0;
     white-space: pre-line;
+    overflow-x: auto;
+}
+
+/* ================= VERDICTS ================= */
+.verdict {
+    font-weight: bold;
+    font-size: 18px;
+    margin-top: 10px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.verdict.real {
+    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.2);
+    text-shadow: 0 0 8px #2ecc71;
+}
+
+.verdict.fake {
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.2);
+    text-shadow: 0 0 8px #e74c3c;
+}
+
+/* ================= LOADING OVERLAY ================= */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(6px);
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.spinner {
+    border: 8px solid rgba(255,255,255,0.2);
+    border-top: 8px solid #00d0ff;
+    border-radius: 50%;
+    width: 70px;
+    height: 70px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+.loading-text {
+    color: #00d0ff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ================= SCROLLBAR ================= */
+.result-media::-webkit-scrollbar {
+    width: 8px;
+}
+
+.result-media::-webkit-scrollbar-thumb {
+    background-color: #00d0ff;
+    border-radius: 10px;
+}
+
+.success {
+    color: #2ecc71;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.error {
+    color: #e74c3c;
+    margin-top: 10px;
+    font-weight: bold;
 }

@@ -3,190 +3,276 @@ import cv2
 import torch
 import numpy as np
 from PIL import Image
-from transformers import AutoImageProcessor, AutoModelForImageClassification, CLIPProcessor, CLIPModel
+from transformers import (
+    AutoImageProcessor,
+    AutoModelForImageClassification,
+    CLIPProcessor,
+    CLIPModel
+)
 import pytesseract
 
-# ================= OCR CONFIG =================
+# ================= OCR =================
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # ================= CONFIG =================
 MODEL_NAME = "dima806/deepfake_vs_real_image_detection"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 MAX_FRAMES = 12
 RESIZE_WIDTH = 256
-OCR_FRAME_INDEX = 0
-WATERMARK_TEXT_THRESHOLD = 5
 
-# Thresholds
-STYLIZED_BOOST = 0.10
-WATERMARK_BOOST = 0.10
-EDGE_DENSITY_THRESHOLD = 0.12
-TEXTURE_VARIANCE_THRESHOLD = 800
-FFT_RATIO_THRESHOLD = 1.8
+AI_THRESHOLD = 50
+SUSPICIOUS_THRESHOLD = 30
 
 # ================= LOAD MODELS =================
 print("🔄 Loading models...")
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME, use_fast=True)
+
+processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
 model = AutoModelForImageClassification.from_pretrained(MODEL_NAME).to(DEVICE).eval()
 
-anime_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-anime_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(DEVICE).eval()
+clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(DEVICE).eval()
+
 print("✅ Models ready")
 
+# ================= FACE DETECTOR =================
+face_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+)
+
 # ================= FRAME EXTRACTION =================
-def extract_frames(video_path, max_frames=MAX_FRAMES):
+def extract_frames(video_path):
     cap = cv2.VideoCapture(video_path)
+
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    if total_frames <= 0:
-        cap.release()
+    if total_frames == 0:
         return []
 
-    frame_idxs = np.linspace(0, total_frames - 1, max_frames, dtype=int)
+    step = max(total_frames // MAX_FRAMES, 1)
     frames = []
-    for idx in frame_idxs:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+
+    for i in range(0, total_frames, step):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ret, frame = cap.read()
+
         if not ret:
             continue
+
         h, w = frame.shape[:2]
         scale = RESIZE_WIDTH / w
         frame = cv2.resize(frame, (RESIZE_WIDTH, int(h * scale)))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         frames.append(frame)
+
+        if len(frames) >= MAX_FRAMES:
+            break
+
     cap.release()
     return frames
 
-# ================= FRAME PREDICTION =================
+
+# ================= FACE EXTRACTION =================
+def extract_faces_with_positions(frames):
+    face_data = []
+
+    for idx, frame in enumerate(frames):
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+        faces = face_cascade.detectMultiScale(
+            gray, 1.2, 5, minSize=(40, 40)
+        )
+
+        for (x, y, w, h) in faces:
+            face = frame[y:y+h, x:x+w]
+            face = cv2.resize(face, (224, 224))
+            face_data.append((idx, face, (x, y, w, h)))
+
+    return face_data
+
+
+# ================= FACE CONSISTENCY =================
+def face_consistency_score(face_data):
+    if len(face_data) < 2:
+        return 1.0  # assume stable
+
+    diffs = []
+
+    for i in range(len(face_data) - 1):
+        _, f1, _ = face_data[i]
+        _, f2, _ = face_data[i + 1]
+
+        f1_gray = cv2.cvtColor(f1, cv2.COLOR_RGB2GRAY)
+        f2_gray = cv2.cvtColor(f2, cv2.COLOR_RGB2GRAY)
+
+        diff = np.mean(np.abs(f1_gray.astype("float") - f2_gray.astype("float")))
+        diffs.append(diff)
+
+    avg_diff = np.mean(diffs)
+
+    # normalize score
+    consistency = max(0, 1 - (avg_diff / 50))
+
+    return consistency  # 0 = inconsistent, 1 = stable
+
+
+# ================= MODEL PREDICTION =================
 def predict_frames(frames):
-    pil_images = [Image.fromarray(f) for f in frames]
-    inputs = processor(images=pil_images, return_tensors="pt").to(DEVICE)
+    images = [Image.fromarray(f) for f in frames]
+
+    inputs = processor(images=images, return_tensors="pt").to(DEVICE)
+
     with torch.no_grad():
         outputs = model(**inputs)
+
     probs = torch.softmax(outputs.logits, dim=1)
-    return probs[:, 1].cpu().numpy()  # fake probabilities
+    return probs[:, 1].cpu().numpy()
 
-# ================= WATERMARK DETECTION =================
-def detect_watermark(frame):
-    small = cv2.resize(frame, (256, 256))
-    gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
-    text = pytesseract.image_to_string(gray)
-    return len(text.strip()) > WATERMARK_TEXT_THRESHOLD
 
-# ================= EDGE & TEXTURE =================
-def edge_density(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    edges = cv2.Canny(gray, 100, 200)
-    return np.sum(edges > 0) / edges.size
+# ================= CLIP =================
+def detect_anime(frames):
+    images = [Image.fromarray(f) for f in frames[:5]]
 
-def texture_variance(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    return np.var(gray)
+    texts = [
+        "anime style image",
+        "cartoon image",
+        "AI generated face",
+        "real human photo"
+    ]
 
-def noise_level(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    return np.var(gray)
+    inputs = clip_processor(
+        text=texts,
+        images=images,
+        return_tensors="pt",
+        padding=True
+    ).to(DEVICE)
 
-# ================= MOBILE CAMERA DETECTION =================
-def is_mobile_like_video(frames):
-    edge_vals = [edge_density(f) for f in frames[:10]]
-    texture_vals = [texture_variance(f) for f in frames[:10]]
-    return np.mean(edge_vals) > EDGE_DENSITY_THRESHOLD and np.mean(texture_vals) > TEXTURE_VARIANCE_THRESHOLD
-
-# ================= STYLIZED DETECTION =================
-def detect_stylized(frames, frame_probs):
-    votes = 0
-    if np.mean(frame_probs) < 0.08:
-        votes += 1
-    fft_scores, edge_scores, texture_scores = [], [], []
-    for frame in frames[:10]:
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        f = np.fft.fft2(gray)
-        fshift = np.fft.fftshift(f)
-        magnitude = np.log(np.abs(fshift) + 1)
-        high = np.mean(magnitude[magnitude > np.percentile(magnitude, 75)])
-        low = np.mean(magnitude[magnitude < np.percentile(magnitude, 25)])
-        fft_scores.append(high / (low + 1e-6))
-        edge_scores.append(edge_density(frame))
-        texture_scores.append(texture_variance(frame))
-    if np.mean(fft_scores) > FFT_RATIO_THRESHOLD:
-        votes += 1
-    if np.mean(edge_scores) > EDGE_DENSITY_THRESHOLD:
-        votes += 1
-    if np.mean(texture_scores) < TEXTURE_VARIANCE_THRESHOLD:
-        votes += 1
-    return votes >= 2
-
-# ================= ANIME DETECTION =================
-def is_anime_frame(frame):
-    return edge_density(frame) > EDGE_DENSITY_THRESHOLD and texture_variance(frame) < TEXTURE_VARIANCE_THRESHOLD
-
-def detect_anime_clip(frames):
-    pil_images = [Image.fromarray(f) for f in frames]
-    inputs = anime_processor(text=["anime style", "real photograph"], images=pil_images, return_tensors="pt", padding=True).to(DEVICE)
     with torch.no_grad():
-        outputs = anime_model(**inputs)
-    probs = outputs.logits_per_image.softmax(dim=1).cpu().numpy()
-    return float(np.mean(probs[:, 0]))  # probability of anime
+        outputs = clip_model(**inputs)
 
-# ================= MAIN DETECTOR =================
+    probs = outputs.logits_per_image.softmax(dim=1).cpu().numpy()
+
+    scores = [(p[0] + p[1] + p[2]) - p[3] for p in probs]
+    return float(np.mean(scores))
+
+
+# ================= WATERMARK =================
+def detect_watermark(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    text = pytesseract.image_to_string(gray)
+    return len(text.strip().split()) >= 3
+
+
+# ================= REALISM =================
+def realism_score(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    noise = np.var(gray)
+    edges = cv2.Laplacian(gray, cv2.CV_64F).var()
+    return noise / 255.0, edges / 255.0
+
+
+# ================= BRIGHTNESS =================
+def brightness_level(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    return np.mean(gray) / 255.0
+
+
+# ================= MAIN =================
 def detect_video(video_path):
+
     if not os.path.exists(video_path):
-        return 0, "Error: Video file not found", "Video file does not exist"
+        return 0, "Error", "File not found"
 
     frames = extract_frames(video_path)
-    if not frames:
-        return 0, "Error: No frames extracted", "No frames could be extracted from video"
+    if len(frames) == 0:
+        return 0, "Error", "No frames"
 
-    # ----- ANIME HEURISTIC -----
-    anime_count = sum(1 for f in frames[:20] if is_anime_frame(f))
-    if anime_count > len(frames[:20]) * 0.5:
-        return 100, "🎌 Anime / Stylized Content (Heuristic)", f"Anime frames: {anime_count}/{len(frames[:20])}"
+    # FACE DATA
+    face_data = extract_faces_with_positions(frames)
+    faces = [f[1] for f in face_data]
 
-    # ----- ANIME MODEL -----
-    anime_prob = detect_anime_clip(frames[:20])
-    if anime_prob > 0.8:
-        return anime_prob*100, "🎌 Anime / Stylized Content (ML)", f"Anime probability: {anime_prob*100:.2f}%"
+    # PREDICTION
+    if len(faces) > 0:
+        probs = predict_frames(faces)
+    else:
+        probs = predict_frames(frames)
 
-    # ----- DEEPFAKE DETECTION -----
-    frame_probs = predict_frames(frames)
-    avg_fake_prob = float(np.mean(frame_probs))
+    avg_fake_prob = float(np.mean(probs))
+
+    # STYLE
+    anime_prob = detect_anime(frames)
+    is_stylized = anime_prob > 0.6
+
+    # REALISM
+    noise_vals, edge_vals, bright_vals = [], [], []
+
+    for f in frames:
+        n, e = realism_score(f)
+        b = brightness_level(f)
+        noise_vals.append(n)
+        edge_vals.append(e)
+        bright_vals.append(b)
+
+    avg_noise = np.mean(noise_vals)
+    avg_edges = np.mean(edge_vals)
+    avg_brightness = np.mean(bright_vals)
+
+    # FACE CONSISTENCY
+    consistency = face_consistency_score(face_data)
+
+    # ================= CONFIDENCE =================
     confidence = avg_fake_prob * 100
 
-    # ----- STYLIZED CONTENT -----
-    stylized = detect_stylized(frames, frame_probs)
-    if stylized:
-        confidence += STYLIZED_BOOST * 100
+    # MODEL PRIORITY
+    if avg_fake_prob < 0.35:
+        confidence -= 15
+    if avg_fake_prob > 0.75:
+        confidence += 15
 
-    # ----- WATERMARK -----
-    if detect_watermark(frames[OCR_FRAME_INDEX]):
-        confidence += WATERMARK_BOOST * 100
+    # STYLE (controlled)
+    if is_stylized and avg_fake_prob > 0.5:
+        confidence += 6
 
-    # ----- NOISE CHECK -----
-    avg_noise = np.mean([noise_level(f) for f in frames])
-    if avg_noise > 500:
-        confidence -= 10
+    # WATERMARK
+    if detect_watermark(frames[0]):
+        confidence += 6
 
-    # ----- MOBILE CAMERA SAFETY -----
-    if is_mobile_like_video(frames) and confidence < 35:
-        confidence *= 0.5
+    # REALISM (only bright scenes)
+    if avg_brightness > 0.3:
+        if avg_noise < 0.02 and avg_edges < 0.02:
+            confidence += 6
 
-    confidence = min(max(confidence, 0), 100)
+    # 🔥 FACE INCONSISTENCY BOOST
+    if consistency < 0.6:
+        confidence += 12
 
-    # ----- FINAL VERDICT -----
-    if confidence >= 40:
+    confidence = np.clip(confidence, 0, 100)
+
+    # ================= VERDICT =================
+    if avg_fake_prob > 0.8:
         verdict = "Fake Video ❌"
-    elif confidence >= 35:
+
+    elif avg_fake_prob < 0.3 and avg_brightness > 0.2:
+        verdict = "Real Video ✅"
+
+    elif confidence >= AI_THRESHOLD:
+        verdict = "Fake Video ❌"
+
+    elif confidence >= SUSPICIOUS_THRESHOLD:
         verdict = "Suspicious ⚠️"
+
     else:
         verdict = "Real Video ✅"
 
+    # ================= DETAILS =================
     details = (
-        f"Frames analyzed: {len(frames)}\n"
-        f"Base fake probability: {avg_fake_prob*100:.2f}%\n"
-        f"Stylized content detected: {stylized}\n"
-        f"Mobile-like video: {is_mobile_like_video(frames)}\n"
-        f"Average noise level: {avg_noise:.2f}\n"
-        f"Final confidence: {confidence:.2f}%"
+        f"Frames: {len(frames)}\n"
+        f"Faces: {len(faces)}\n"
+        f"Fake Prob: {avg_fake_prob*100:.2f}%\n"
+        f"Consistency: {consistency:.2f}\n"
+        f"Brightness: {avg_brightness:.2f}\n"
+        f"Noise: {avg_noise:.4f}, Edges: {avg_edges:.4f}\n"
+        f"Confidence: {confidence:.2f}%"
     )
 
     return confidence, verdict, details

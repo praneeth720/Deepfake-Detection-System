@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>Deepfake Detection - Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-image">
+<body class="dashboard-bg">
 
-<div class="login-box">
-    <h2>LOGIN</h2>
-    <form method="POST">
+<div class="glass-card login-box">
+    <h2>Login</h2>
+    <form method="POST" action="/login">
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Login</button>
@@ -18,6 +18,16 @@
         {% endif %}
     </form>
 </div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Processing...</div>
+</div>
+
+<script>
+const overlay = document.getElementById('loadingOverlay');
+document.querySelector('form').addEventListener('submit', () => overlay.classList.add('active'));
+</script>
 
 </body>
 </html>

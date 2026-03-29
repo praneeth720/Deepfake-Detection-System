@@ -1,23 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Register</title>
+    <title>Deepfake Detection - Register</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="bg-light">
+<body class="dashboard-bg">
 
-<div class="register-box">
+<div class="glass-card register-box">
     <h2>Create Account</h2>
-    <form method="POST">
+
+    <form method="POST" action="/register">
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
+
         <button type="submit">Register</button>
-        <p>Already have account? <a href="/">Login</a></p>
+
+        <p>Already have an account? <a href="/">Login</a></p>
+
         {% if message %}
-        <p class="success">{{ message }}</p>
+            <p class="success">{{ message }}</p>
+        {% endif %}
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
         {% endif %}
     </form>
 </div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Processing...</div>
+</div>
+
+<script>
+const overlay = document.getElementById('loadingOverlay');
+document.querySelector('form').addEventListener('submit', () => {
+    overlay.classList.add('active');
+});
+</script>
 
 </body>
 </html>
