@@ -19,86 +19,41 @@ It combines **deep learning models, signal processing, and heuristic analysis** 
 
 ## 🧠 Technologies Used
 
-## 🧠 Technologies Used
+### 🔹 Programming Language
+- Python 3.x
 
-- Python
-- Flask
-- PyTorch
-- Transformers (CLIP, ViT)
-- OpenCV
-- Librosa
-- NumPy
-- Scikit-learn
-- SQLite
-- HTML, CSS
-- FFmpeg
-- Pyngrok
+### 🔹 Backend Framework
+- Flask (Web Application Framework)
 
+### 🔹 Machine Learning / Deep Learning
+- PyTorch (Model execution)
+- Transformers (CLIP, Vision Transformer - ViT)
+- Scikit-learn (Random Forest for audio classification)
 
-🔹 Programming Language
+### 🔹 Computer Vision
+- OpenCV (Image and Video Processing)
+- Pillow (Image handling)
+- scikit-image (Feature extraction)
 
--Python 3.x
+### 🔹 Audio Processing
+- Librosa (Audio feature extraction)
+- NumPy (Numerical computations)
 
+### 🔹 Vision Models
+- CLIP Model (Image understanding and classification)
+- Vision Transformer (ViT)
 
-🔹 Backend Framework
+### 🔹 Database
+- SQLite (Lightweight database for logging and user data)
 
--Flask (Web Application Framework)
+### 🔹 Web & UI
+- HTML5
+- CSS3 (Glassmorphism-based UI design)
 
-
-🔹 Machine Learning / Deep Learning
-
--PyTorch (Model execution)
-
--Transformers (CLIP, ViT models)
-
--Scikit-learn (Random Forest for audio classification)
-
-👉 Deepfake systems commonly use CNNs and deep learning models for detection tasks
-
-
-🔹 Computer Vision
-
--OpenCV (Image & Video Processing)
-
--Pillow (Image handling)
-
--scikit-image (Feature extraction)
-
-
-🔹 Audio Processing
-
--Librosa (Audio feature extraction)
-
--NumPy (Numerical computation)
-
-
-🔹 Natural Language / Vision Models
-
--CLIP Model (Image understanding)
-
--Vision Transformer (ViT)
-
-
-🔹 Database
-
--SQLite (Lightweight database for logging)
-
-
-🔹 Web & UI
-
--HTML5
-
--CSS3 (Glassmorphism UI)
-
-
-🔹 Other Tools
-
--FFmpeg (Audio conversion)
-
--Pyngrok (Public URL tunneling)
-
--Werkzeug (File handling)
-
+### 🔹 Other Tools
+- FFmpeg (Audio format conversion)
+- Pyngrok (Public URL tunneling)
+- Werkzeug (File handling and utilities)
 
 ---
 
